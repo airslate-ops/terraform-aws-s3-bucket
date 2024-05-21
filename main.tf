@@ -1,6 +1,8 @@
 data "aws_region" "current" {}
 
-data "aws_canonical_user_id" "this" {}
+data "aws_canonical_user_id" "this" {
+  count = local.create_bucket && local.create_bucket_acl && try(var.owner["id"], null) == null ? 1 : 0
+}
 
 data "aws_caller_identity" "current" {}
 
@@ -8,7 +10,9 @@ data "aws_partition" "current" {}
 locals {
   create_bucket = var.create_bucket && var.putin_khuylo
 
-  attach_policy = var.attach_require_latest_tls_policy || var.attach_elb_log_delivery_policy || var.attach_lb_log_delivery_policy || var.attach_deny_insecure_transport_policy || var.attach_inventory_destination_policy || var.attach_policy
+  create_bucket_acl = (var.acl != null && var.acl != "null") || length(local.grants) > 0
+
+  attach_policy = var.attach_require_latest_tls_policy || var.attach_access_log_delivery_policy || var.attach_elb_log_delivery_policy || var.attach_lb_log_delivery_policy || var.attach_deny_insecure_transport_policy || var.attach_inventory_destination_policy || var.attach_deny_incorrect_encryption_headers || var.attach_deny_incorrect_kms_key_sse || var.attach_deny_unencrypted_object_uploads || var.attach_policy
 
   # Variables with type `any` should be jsonencode()'d when value is coming from Terragrunt
   grants               = try(jsondecode(var.grant), var.grant)
@@ -36,10 +40,31 @@ resource "aws_s3_bucket_logging" "this" {
 
   target_bucket = var.logging["target_bucket"]
   target_prefix = try(var.logging["target_prefix"], null)
+
+
+  dynamic "target_object_key_format" {
+    for_each = try([var.logging["target_object_key_format"]], [])
+
+    content {
+      dynamic "partitioned_prefix" {
+        for_each = try(target_object_key_format.value["partitioned_prefix"], [])
+
+        content {
+          partition_date_source = try(partitioned_prefix.value, null)
+        }
+      }
+
+      dynamic "simple_prefix" {
+        for_each = contains(keys(target_object_key_format.value), "simple_prefix") ? [true] : []
+
+        content {}
+      }
+    }
+  }
 }
 
 resource "aws_s3_bucket_acl" "this" {
-  count = local.create_bucket && ((var.acl != null && var.acl != "null") || length(local.grants) > 0) ? 1 : 0
+  count = local.create_bucket && local.create_bucket_acl ? 1 : 0
 
   bucket                = aws_s3_bucket.this[0].id
   expected_bucket_owner = var.expected_bucket_owner
@@ -67,7 +92,7 @@ resource "aws_s3_bucket_acl" "this" {
       }
 
       owner {
-        id           = try(var.owner["id"], data.aws_canonical_user_id.this.id)
+        id           = try(var.owner["id"], data.aws_canonical_user_id.this[0].id)
         display_name = try(var.owner["display_name"], null)
       }
     }
@@ -113,7 +138,7 @@ resource "aws_s3_bucket_website_configuration" "this" {
 
     content {
       dynamic "condition" {
-        for_each = [try([routing_rule.value.condition], [])]
+        for_each = try([routing_rule.value.condition], [])
 
         content {
           http_error_code_returned_equals = try(routing_rule.value.condition["http_error_code_returned_equals"], null)
@@ -512,8 +537,16 @@ resource "aws_s3_bucket_replication_configuration" "this" {
 resource "aws_s3_bucket_policy" "this" {
   count = local.create_bucket && local.attach_policy ? 1 : 0
 
+  # Chain resources (s3_bucket -> s3_bucket_public_access_block -> s3_bucket_policy )
+  # to prevent "A conflicting conditional operation is currently in progress against this resource."
+  # Ref: https://github.com/hashicorp/terraform-provider-aws/issues/7628
+
   bucket = aws_s3_bucket.this[0].id
   policy = data.aws_iam_policy_document.combined[0].json
+
+  depends_on = [
+    aws_s3_bucket_public_access_block.this
+  ]
 }
 
 data "aws_iam_policy_document" "combined" {
@@ -522,8 +555,12 @@ data "aws_iam_policy_document" "combined" {
   source_policy_documents = compact([
     var.attach_elb_log_delivery_policy ? data.aws_iam_policy_document.elb_log_delivery[0].json : "",
     var.attach_lb_log_delivery_policy ? data.aws_iam_policy_document.lb_log_delivery[0].json : "",
+    var.attach_access_log_delivery_policy ? data.aws_iam_policy_document.access_log_delivery[0].json : "",
     var.attach_require_latest_tls_policy ? data.aws_iam_policy_document.require_latest_tls[0].json : "",
     var.attach_deny_insecure_transport_policy ? data.aws_iam_policy_document.deny_insecure_transport[0].json : "",
+    var.attach_deny_unencrypted_object_uploads ? data.aws_iam_policy_document.deny_unencrypted_object_uploads[0].json : "",
+    var.attach_deny_incorrect_kms_key_sse ? data.aws_iam_policy_document.deny_incorrect_kms_key_sse[0].json : "",
+    var.attach_deny_incorrect_encryption_headers ? data.aws_iam_policy_document.deny_incorrect_encryption_headers[0].json : "",
     var.attach_inventory_destination_policy || var.attach_analytics_destination_policy ? data.aws_iam_policy_document.inventory_and_analytics_destination_policy[0].json : "",
     var.attach_policy ? var.policy : ""
   ])
@@ -557,6 +594,8 @@ locals {
     sa-east-1      = "507241528517"
     us-gov-west-1  = "048591011584"
     us-gov-east-1  = "190560391635"
+    cn-north-1     = "638102146993"
+    cn-northwest-1 = "037604701340"
   }
 }
 
@@ -649,6 +688,72 @@ data "aws_iam_policy_document" "lb_log_delivery" {
 
     actions = [
       "s3:GetBucketAcl",
+      "s3:ListBucket",
+    ]
+
+    resources = [
+      aws_s3_bucket.this[0].arn,
+    ]
+
+  }
+}
+
+# Grant access to S3 log delivery group for server access logging
+# https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-ownership-migrating-acls-prerequisites.html#object-ownership-server-access-logs
+# https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-server-access-logging.html#grant-log-delivery-permissions-general
+data "aws_iam_policy_document" "access_log_delivery" {
+  count = local.create_bucket && var.attach_access_log_delivery_policy ? 1 : 0
+
+  statement {
+    sid = "AWSAccessLogDeliveryWrite"
+
+    principals {
+      type        = "Service"
+      identifiers = ["logging.s3.amazonaws.com"]
+    }
+
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+    ]
+
+    resources = [
+      "${aws_s3_bucket.this[0].arn}/*",
+    ]
+
+    dynamic "condition" {
+      for_each = length(var.access_log_delivery_policy_source_buckets) != 0 ? [true] : []
+      content {
+        test     = "ForAnyValue:ArnLike"
+        variable = "aws:SourceArn"
+        values   = var.access_log_delivery_policy_source_buckets
+      }
+    }
+
+    dynamic "condition" {
+      for_each = length(var.access_log_delivery_policy_source_accounts) != 0 ? [true] : []
+      content {
+        test     = "ForAnyValue:StringEquals"
+        variable = "aws:SourceAccount"
+        values   = var.access_log_delivery_policy_source_accounts
+      }
+    }
+
+  }
+
+  statement {
+    sid = "AWSAccessLogDeliveryAclCheck"
+
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["logging.s3.amazonaws.com"]
+    }
+
+    actions = [
+      "s3:GetBucketAcl",
     ]
 
     resources = [
@@ -720,14 +825,94 @@ data "aws_iam_policy_document" "require_latest_tls" {
   }
 }
 
+data "aws_iam_policy_document" "deny_incorrect_encryption_headers" {
+  count = local.create_bucket && var.attach_deny_incorrect_encryption_headers ? 1 : 0
+
+  statement {
+    sid    = "denyIncorrectEncryptionHeaders"
+    effect = "Deny"
+
+    actions = [
+      "s3:PutObject"
+    ]
+
+    resources = [
+      "${aws_s3_bucket.this[0].arn}/*"
+    ]
+
+    principals {
+      identifiers = ["*"]
+      type        = "*"
+    }
+
+    condition {
+      test     = "StringNotEquals"
+      variable = "s3:x-amz-server-side-encryption"
+      values   = try(var.server_side_encryption_configuration.rule.apply_server_side_encryption_by_default.sse_algorithm, null) == "aws:kms" ? ["aws:kms"] : ["AES256"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "deny_incorrect_kms_key_sse" {
+  count = local.create_bucket && var.attach_deny_incorrect_kms_key_sse ? 1 : 0
+
+  statement {
+    sid    = "denyIncorrectKmsKeySse"
+    effect = "Deny"
+
+    actions = [
+      "s3:PutObject"
+    ]
+
+    resources = [
+      "${aws_s3_bucket.this[0].arn}/*"
+    ]
+
+    principals {
+      identifiers = ["*"]
+      type        = "*"
+    }
+
+    condition {
+      test     = "StringNotEquals"
+      variable = "s3:x-amz-server-side-encryption-aws-kms-key-id"
+      values   = [try(var.allowed_kms_key_arn, null)]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "deny_unencrypted_object_uploads" {
+  count = local.create_bucket && var.attach_deny_unencrypted_object_uploads ? 1 : 0
+
+  statement {
+    sid    = "denyUnencryptedObjectUploads"
+    effect = "Deny"
+
+    actions = [
+      "s3:PutObject"
+    ]
+
+    resources = [
+      "${aws_s3_bucket.this[0].arn}/*"
+    ]
+
+    principals {
+      identifiers = ["*"]
+      type        = "*"
+    }
+
+    condition {
+      test     = "Null"
+      variable = "s3:x-amz-server-side-encryption"
+      values   = [true]
+    }
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "this" {
   count = local.create_bucket && var.attach_public_policy ? 1 : 0
 
-  # Chain resources (s3_bucket -> s3_bucket_policy -> s3_bucket_public_access_block)
-  # to prevent "A conflicting conditional operation is currently in progress against this resource."
-  # Ref: https://github.com/hashicorp/terraform-provider-aws/issues/7628
-
-  bucket = local.attach_policy ? aws_s3_bucket_policy.this[0].id : aws_s3_bucket.this[0].id
+  bucket = aws_s3_bucket.this[0].id
 
   block_public_acls       = var.block_public_acls
   block_public_policy     = var.block_public_policy

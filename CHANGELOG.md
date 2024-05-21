@@ -2,6 +2,124 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.2](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v4.1.1...v4.1.2) (2024-04-16)
+
+
+### Bug Fixes
+
+* Typo in description of `access_log_delivery_policy_source_buckets` variable ([#278](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/278)) ([b4a5347](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/b4a5347feb4120a6872c4aade8e50585aeb86e7c))
+
+## [4.1.1](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v4.1.0...v4.1.1) (2024-03-06)
+
+
+### Bug Fixes
+
+* Update CI workflow versions to remove deprecated runtime warnings ([#274](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/274)) ([ca372ac](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/ca372acbc82e6f8e16ff810a9f1b4a5ae52230b5))
+
+## [4.1.0](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v4.0.1...v4.1.0) (2024-01-26)
+
+
+### Features
+
+* Allow override of the default tags override ([#261](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/261)) ([f9e1740](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/f9e1740cafe597f2764a0d2ee7dbd34a0e19753c))
+
+### [4.0.1](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v4.0.0...v4.0.1) (2024-01-13)
+
+
+### Bug Fixes
+
+* Fixed routing rule condition ([#270](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/270)) ([116f79b](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/116f79be982b02c3f14dd92a8694d214dc81b3f5))
+
+## [4.0.0](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.15.2...v4.0.0) (2024-01-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* upd versions.tf to require >= 5.27
+
+### Features
+
+* **logging:** change logging variable type to any ([2c45bde](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/2c45bdeb097cac250c395ed6dfb7c091e5f54abd))
+* **logging:** Date based partitioning for access-logs ([59f65af](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/59f65afbc5050a6c651b51d41180f64de71478dc))
+* upd versions.tf to require >= 5.27 ([7a4aab6](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/7a4aab6d27a5d09404f517a5ef419898e0ce2281))
+
+### [3.15.2](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.15.1...v3.15.2) (2024-01-12)
+
+
+### Bug Fixes
+
+* Add China regions to elb_service_accounts ([#264](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/264)) ([c6870d5](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/c6870d5187eaa83d089ebeb7d1e750217da4ec89))
+
+### [3.15.1](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.15.0...v3.15.1) (2023-08-26)
+
+
+### Bug Fixes
+
+* Added missing check for attach_access_log_delivery_policy for access logs logic ([#252](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/252)) ([97e542b](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/97e542bbcece748602ea46fd5e136f64a0064dac))
+
+## [3.15.0](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.14.1...v3.15.0) (2023-08-22)
+
+
+### Features
+
+* Stop requiring `s3:ListAllMyBuckets` IAM permission unless needed (for bucket ACL) ([#243](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/243)) ([74fcc60](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/74fcc607d21bdd34c2daf3a3ca997c7c0c1c4dde))
+
+### [3.14.1](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.14.0...v3.14.1) (2023-07-19)
+
+
+### Bug Fixes
+
+* Update log delivery policy to add `s3:ListBucket` action ([#245](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/245)) ([af0a28d](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/af0a28d70b8722e77ecf16c15a2b029105074934))
+
+## [3.14.0](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.13.0...v3.14.0) (2023-06-19)
+
+
+### Features
+
+* Add "deny incorrect kms key sse" bucket policy ([#240](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/240)) ([e0d5788](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/e0d5788f7884280f66c62734127efa7661462640))
+
+## [3.13.0](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.12.0...v3.13.0) (2023-06-11)
+
+
+### Features
+
+* Add "deny unencrypted object uploads" and "incorrect encryption headers" bucket policies ([#238](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/238)) ([2542a36](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/2542a36f2d85cba2996a348c70b5c7b6d523b675))
+
+## [3.12.0](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.11.0...v3.12.0) (2023-06-08)
+
+
+### Features
+
+* Allow setting id parameter in notification object ([#236](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/236)) ([f9067dc](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/f9067dca08248d90c24a8b664aa006bc356dcc98))
+
+## [3.11.0](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.10.1...v3.11.0) (2023-05-25)
+
+
+### Features
+
+* Added outputs for s3 bucket lifecycle rules and policy ([#234](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/234)) ([24b88e8](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/24b88e8ec1b02c48f49b5eb04d7ccda8569cde1e))
+
+### [3.10.1](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.10.0...v3.10.1) (2023-04-28)
+
+
+### Bug Fixes
+
+* Fixed Bucket Policy chain dependency with Public Access Block ([#227](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/227)) ([fa19074](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/fa190740956fc2efab0d94c8e60b3d3c63d0ddd3))
+
+## [3.10.0](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.9.0...v3.10.0) (2023-04-27)
+
+
+### Features
+
+* Add default Access Log Delivery Policy (same as ALB/NLB) to work since April 2023 ([#230](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/230)) ([bafac30](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/bafac30bb577ead366fd0b1ab759b0c2a2f4bc5d))
+
+## [3.9.0](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.8.2...v3.9.0) (2023-04-26)
+
+
+### Features
+
+* Updated S3 Bucket Block Public Access and ACL(Object Ownership) defaults to work since April 2023 ([#226](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/issues/226)) ([12ad5b6](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/commit/12ad5b667b7b6556390e6c49a9719457d2742e03))
+
 ### [3.8.2](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/compare/v3.8.1...v3.8.2) (2023-03-10)
 
 

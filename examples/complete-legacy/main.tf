@@ -2,11 +2,9 @@ provider "aws" {
   region = local.region
 
   # Make it faster by skipping something
-  skip_get_ec2_platforms      = true
   skip_metadata_api_check     = true
   skip_region_validation      = true
   skip_credentials_validation = true
-  skip_requesting_account_id  = true
 }
 
 locals {
@@ -65,6 +63,9 @@ module "log_bucket" {
   bucket        = "logs-${random_pet.this.id}"
   acl           = "log-delivery-write"
   force_destroy = true
+
+  control_object_ownership = true
+  object_ownership         = "ObjectWriter"
 
   attach_elb_log_delivery_policy        = true
   attach_lb_log_delivery_policy         = true
@@ -206,11 +207,11 @@ module "s3_bucket" {
     }
   }
 
-  # S3 bucket-level Public Access Block configuration
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  # S3 bucket-level Public Access Block configuration (by default now AWS has made this default as true for S3 bucket-level block public access)
+  # block_public_acls       = true
+  # block_public_policy     = true
+  # ignore_public_acls      = true
+  # restrict_public_buckets = true
 
   # S3 Bucket Ownership Controls
   control_object_ownership = true

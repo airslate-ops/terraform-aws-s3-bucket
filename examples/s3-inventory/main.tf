@@ -24,7 +24,6 @@ module "multi_inventory_configurations_bucket" {
   attach_policy                       = true
   attach_inventory_destination_policy = true
   inventory_self_source_destination   = true
-  acl                                 = "private" # "acl" conflicts with "grant" and "owner"
 
   versioning = {
     status     = true
@@ -92,7 +91,8 @@ resource "random_pet" "this" {
 
 # https://docs.aws.amazon.com/AmazonS3/latest/userguide/configure-inventory.html#configure-inventory-kms-key-policy
 module "kms" {
-  source = "terraform-aws-modules/kms/aws"
+  source  = "terraform-aws-modules/kms/aws"
+  version = "~> 2.0"
 
   description             = "Key example for Inventory S3 destination encyrption"
   deletion_window_in_days = 7
@@ -136,7 +136,6 @@ module "inventory_destination_bucket" {
   source = "../../"
 
   bucket                              = "inventory-destination-${random_pet.this.id}"
-  acl                                 = "private" # "acl" conflicts with "grant" and "owner"
   force_destroy                       = true
   attach_policy                       = true
   attach_inventory_destination_policy = true
@@ -148,6 +147,5 @@ module "inventory_source_bucket" {
   source = "../../"
 
   bucket        = "inventory-source-${random_pet.this.id}"
-  acl           = "private" # "acl" conflicts with "grant" and "owner"
   force_destroy = true
 }
